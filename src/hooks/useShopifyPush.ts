@@ -18,10 +18,12 @@ export function useShopifyPush({ onProductPushed }: UseShopifyPushOptions = {}) 
 
   const pushSingleProduct = async (product: ExtractedProduct) => {
     try {
+      const workspaceId = typeof window !== 'undefined' ? localStorage.getItem('active_workspace_id') : undefined;
+
       const res = await fetch('/api/shopify/push', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product }),
+        body: JSON.stringify({ product, workspaceId }),
       });
 
       const data = await res.json();

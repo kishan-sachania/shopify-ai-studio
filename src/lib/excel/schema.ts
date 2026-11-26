@@ -1,4 +1,4 @@
-import { ExcelColumnFieldConfig, ExtractedProduct } from '@/types/product';
+import { ExcelColumnFieldConfig } from '@/types/product';
 
 export const FIELD_MAP: Record<string, ExcelColumnFieldConfig> = {
   // Required mapping
