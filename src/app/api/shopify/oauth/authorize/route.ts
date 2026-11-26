@@ -43,12 +43,7 @@ export async function GET(req: NextRequest) {
       JSON.stringify({ workspaceId, nonce, timestamp: Date.now() })
     ).toString('base64url');
 
-    const signature = crypto
-      .createHmac('sha256', clientSecret)
-      .update(statePayload)
-      .digest('base64url');
 
-    const signedState = `${statePayload}.${signature}`;
 
     const signature = crypto
       .createHmac('sha256', clientSecret)
