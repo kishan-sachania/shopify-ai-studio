@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { getShopifyClientForWorkspace } from '@/lib/shopify/workspaceClient';
-import { executeGraphQL, getPrimaryLocationId, resolveCollectionGids, PRODUCT_SET_MUTATION } from '@/lib/shopify/client';
+import { executeGraphQL, getPrimaryLocationId, PRODUCT_SET_MUTATION } from '@/lib/shopify/client';
 import { buildProductSetPayload } from '@/lib/shopify/payloadBuilder';
 import { ExtractedProduct } from '@/types/product';
 import { PushResult } from '@/types/shopify';
@@ -15,6 +15,76 @@ const GET_PRIMARY_LOCATION_QUERY = `
     }
   }
 `;
+
+const FIND_COLLECTION_QUERY = `
+  query findCollection($q: String!) {
+    collections(first: 5, query: $q) {
+      nodes {
+        id
+        title
+      }
+    }
+  }
+`;
+
+const CREATE_COLLECTION_MUTATION = `
+  mutation createCollection($input: CollectionInput!) {
+    collectionCreate(input: $input) {
+      collection {
+        id
+        title
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+async function resolveStoreCollectionGids(
+  execute: <T = any>(query: string, variables?: Record<string, any>) => Promise<T>,
+  collectionNames: string[],
+  cache: Map<string, string>
+): Promise<string[]> {
+  const gids: string[] = [];
+
+  for (const rawName of collectionNames) {
+    const cleanTitle = rawName.trim();
+    if (!cleanTitle) continue;
+
+    const cacheKey = cleanTitle.toLowerCase();
+    if (cache.has(cacheKey)) {
+      gids.push(cache.get(cacheKey)!);
+      continue;
+    }
+
+    try {
+      const searchRes: any = await execute(FIND_COLLECTION_QUERY, { q: `title:"${cleanTitle}"` });
+      const nodes = searchRes?.data?.collections?.nodes || searchRes?.collections?.nodes || [];
+      const existing = nodes.find((c: any) => c.title.toLowerCase() === cleanTitle.toLowerCase());
+
+      if (existing?.id) {
+        cache.set(cacheKey, existing.id);
+        gids.push(existing.id);
+        continue;
+      }
+
+      const createRes: any = await execute(CREATE_COLLECTION_MUTATION, {
+        input: { title: cleanTitle },
+      });
+      const newColl = createRes?.data?.collectionCreate?.collection || createRes?.collectionCreate?.collection;
+      if (newColl?.id) {
+        cache.set(cacheKey, newColl.id);
+        gids.push(newColl.id);
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return gids;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -77,17 +147,18 @@ export async function POST(req: NextRequest) {
     }
 
     const results: PushResult[] = [];
+    const collectionCache = new Map<string, string>();
 
     for (let i = 0; i < products.length; i++) {
       const item = products[i];
 
       let collectionGids: string[] = [];
       if (Array.isArray(item.collections) && item.collections.length > 0) {
-        try {
-          collectionGids = await resolveCollectionGids(item.collections);
-        } catch {
-          collectionGids = [];
-        }
+        collectionGids = await resolveStoreCollectionGids(
+          runner.execute,
+          item.collections,
+          collectionCache
+        );
       }
 
       const payload = buildProductSetPayload(item, runner.locationId, collectionGids);

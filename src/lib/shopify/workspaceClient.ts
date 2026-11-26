@@ -1,7 +1,7 @@
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { decryptToken } from '@/lib/security/crypto';
 
-interface WorkspaceShopifyClient {
+export interface WorkspaceShopifyClient {
   shopDomain: string;
   apiVersion: string;
   executeGraphQL: <T = any>(query: string, variables?: Record<string, any>) => Promise<T>;
@@ -48,7 +48,8 @@ export async function getShopifyClientForWorkspace(workspaceId: string): Promise
       });
 
       if (!response.ok) {
-        throw new Error(`Shopify GraphQL HTTP error [${response.status}]: ${response.statusText}`);
+        const errText = await response.text();
+        throw new Error(`Shopify GraphQL HTTP error [${response.status}]: ${errText || response.statusText}`);
       }
 
       const json = await response.json();

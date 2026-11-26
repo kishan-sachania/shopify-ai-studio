@@ -208,7 +208,8 @@ export function ProductEditDrawer({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (form) {
-      onSave(form);
+      const updated = form.status === 'ERROR' ? { ...form, status: 'READY' as const, errorMessages: [] } : form;
+      onSave(updated);
       handleClose();
     }
   };
@@ -248,14 +249,23 @@ export function ProductEditDrawer({
           {/* Drawer Scrollable Body */}
           <form id="productEditForm" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
             {form.errorMessages && form.errorMessages.length > 0 && (
-              <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-start gap-2.5">
-                <AlertCircle className="h-4 w-4 shrink-0 text-rose-600 mt-0.5" />
-                <div>
-                  <strong className="block font-semibold">Previous Push Errors:</strong>
-                  {form.errorMessages.map((e, idx) => (
-                    <p key={idx} className="mt-0.5">{e}</p>
-                  ))}
+              <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-start justify-between gap-2.5">
+                <div className="flex items-start gap-2.5">
+                  <AlertCircle className="h-4 w-4 shrink-0 text-rose-600 mt-0.5" />
+                  <div>
+                    <strong className="block font-semibold">Previous Push Errors:</strong>
+                    {form.errorMessages.map((e, idx) => (
+                      <p key={idx} className="mt-0.5">{e}</p>
+                    ))}
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, status: 'READY', errorMessages: [] })}
+                  className="shrink-0 px-2.5 py-1 bg-white border border-rose-300 text-rose-700 font-semibold rounded-lg hover:bg-rose-100 transition"
+                >
+                  Reset to Ready
+                </button>
               </div>
             )}
 

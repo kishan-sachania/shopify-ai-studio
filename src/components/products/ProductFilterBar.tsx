@@ -10,6 +10,7 @@ interface ProductFilterBarProps {
   onStatusFilterChange: (status: ProductPushStatus | 'ALL') => void;
   selectedCount: number;
   onPushSelected: () => void;
+  onResetSelected?: () => void;
   onClearAll: () => void;
   isPushing: boolean;
 }
@@ -21,6 +22,7 @@ export function ProductFilterBar({
   onStatusFilterChange,
   selectedCount,
   onPushSelected,
+  onResetSelected,
   onClearAll,
   isPushing,
 }: ProductFilterBarProps) {
@@ -57,6 +59,16 @@ export function ProductFilterBar({
 
       {/* Action Buttons */}
       <div className="flex items-center gap-2 shrink-0">
+        {onResetSelected && selectedCount > 0 && (
+          <button
+            onClick={onResetSelected}
+            disabled={isPushing}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 disabled:opacity-40 transition-colors"
+          >
+            Reset to Ready ({selectedCount})
+          </button>
+        )}
+
         <button
           onClick={onPushSelected}
           disabled={selectedCount === 0 || isPushing}

@@ -97,6 +97,13 @@ export default function ProductsPage() {
     setSelectedIds(new Set());
   };
 
+  const handleResetSelected = () => {
+    selectedIds.forEach((id) => {
+      updateProductStatus(id, 'READY', { errors: [] });
+    });
+    setSelectedIds(new Set());
+  };
+
   const handlePushSingle = async (item: ExtractedProduct) => {
     await pushSingleProduct(item);
   };
@@ -159,6 +166,7 @@ export default function ProductsPage() {
         onStatusFilterChange={setStatusFilter}
         selectedCount={selectedIds.size}
         onPushSelected={handlePushSelected}
+        onResetSelected={handleResetSelected}
         onClearAll={clearAllProducts}
         isPushing={isPushing}
       />
