@@ -40,7 +40,5 @@ export function usePagination<T>({ items, initialPageSize = 10 }: UsePaginationO
     paginatedItems,
     goToPage,
     changePageSize,
-    hasNextPage: safePage < totalPages,
-    hasPrevPage: safePage > 1,
   };
 }

@@ -124,7 +124,7 @@ export async function executeGraphQL<T = ShopifyProductSetResponse>(
   throw new Error('Maximum retries exceeded');
 }
 
-export const GET_LOCATION_QUERY = `
+const GET_LOCATION_QUERY = `
   query getLocation {
     locations(first: 1) {
       nodes {
@@ -134,7 +134,7 @@ export const GET_LOCATION_QUERY = `
   }
 `;
 
-export const CREATE_COLLECTION_MUTATION = `
+const CREATE_COLLECTION_MUTATION = `
   mutation createCollection($input: CollectionInput!) {
     collectionCreate(input: $input) {
       collection {
@@ -151,7 +151,7 @@ export const CREATE_COLLECTION_MUTATION = `
 
 const collectionCache = new Map<string, string>();
 
-export async function ensureCollectionGid(title: string): Promise<string | null> {
+async function ensureCollectionGid(title: string): Promise<string | null> {
   const cleanTitle = title.trim();
   if (!cleanTitle) return null;
 

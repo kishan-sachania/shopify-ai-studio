@@ -17,7 +17,6 @@ import {
   CheckCircle2,
   Image as ImageIcon,
   Loader2,
-  Calendar,
   FileText,
   Globe,
   Sparkles,
@@ -26,7 +25,6 @@ import { useLocalStorageProducts } from '@/hooks/useLocalStorageProducts';
 import { useShopifyPush } from '@/hooks/useShopifyPush';
 import { Badge } from '@/components/common/Badge';
 import { ProductEditDrawer } from '@/components/products/ProductEditDrawer';
-import { ExtractedProduct } from '@/types/product';
 
 interface PageProps {
   params: Promise<{ id: string }>;
