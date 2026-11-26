@@ -1,0 +1,9 @@
+1. Write 2-3 short sentences, 25-50 words in total, as one paragraph.
+2. Start with the product name or type. No greetings or generic openings.
+3. State the main features and any benefits supported by the data.
+4. Use 1-2 relevant phrases from "keywords", only where they fit naturally. Never repeat them to fill space. If there are none, use the product name and type.
+5. Use simple, natural language that is easy to read.
+6. Use only facts from the product data. Don't invent prices, discounts, ratings or claims.
+7. Don't use unsupported words like "best", "#1" or "guaranteed".
+8. If a detail is missing, leave it out. A shorter text is better than a made-up one.
+9. Return only the description, with no heading, quotes, emojis or hashtags.

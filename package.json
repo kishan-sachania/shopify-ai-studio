@@ -1,0 +1,36 @@
+{
+  "name": "shopify-product-importer",
+  "version": "1.0.0",
+  "description": "Automate Shopify product creation from JSON using GraphQL Admin API",
+  "type": "module",
+  "main": "src/import.js",
+  "scripts": {
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
+    "start": "next start",
+    "node-import": "node src/import.js",
+    "extract": "node extract-ro-json.js",
+    "ai-api": "uvicorn scripts.main:app --reload"
+  },
+  "dependencies": {
+    "@types/node": "^26.6.10",
+    "@types/react": "^19.3.2",
+    "@types/react-dom": "^19.3.0",
+    "autoprefixer": "^10.7.0",
+    "clsx": "^2.1.1",
+    "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
+    "lucide-react": "^1.80.0",
+    "next": "^16.4.6",
+    "postcss": "^8.5.33",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "tailwind-merge": "^3.7.1",
+    "tailwindcss": "^4.3.5",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "^7.0.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.5"
+  }
+}
