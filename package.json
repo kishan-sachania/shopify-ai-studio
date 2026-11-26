@@ -13,6 +13,7 @@
     "ai-api": "uvicorn scripts.main:app --reload"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.119.2",
     "@types/node": "^26.6.10",
     "@types/react": "^19.3.2",
     "@types/react-dom": "^19.3.0",
