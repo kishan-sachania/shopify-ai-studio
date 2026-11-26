@@ -74,7 +74,7 @@ export async function parseExcelBuffer(
 
     // Defaults & image processing
     const title = item.title || '';
-    const desc = item.descriptionHtml || `<p>${title}</p>`;
+    const desc = item.descriptionHtml || '';
     const vendor = item.vendor || '';
 
     let images: string[] = [];
@@ -104,6 +104,8 @@ export async function parseExcelBuffer(
       task_status: item.task_status || '',
       source_url: item.source_url || '',
       shopify_product_url: item.shopify_product_url || '',
+      live_url: item.live_url || '',
+      sheet_updated_at: item.sheet_updated_at || '',
       notes: item.notes || '',
       status: 'READY',
       createdAt: nowIso,

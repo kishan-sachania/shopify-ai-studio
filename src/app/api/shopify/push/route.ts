@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { executeGraphQL, getPrimaryLocationId, PRODUCT_SET_MUTATION } from '@/lib/shopify/client';
+import { executeGraphQL, getPrimaryLocationId, resolveCollectionGids, PRODUCT_SET_MUTATION } from '@/lib/shopify/client';
 import { buildProductSetPayload } from '@/lib/shopify/payloadBuilder';
 import { ExtractedProduct } from '@/types/product';
 import { PushResult } from '@/types/shopify';
@@ -23,13 +23,33 @@ export async function POST(req: NextRequest) {
 
     for (let i = 0; i < products.length; i++) {
       const item = products[i];
-      const payload = buildProductSetPayload(item, locationId);
+
+      let collectionGids: string[] = [];
+      if (Array.isArray(item.collections) && item.collections.length > 0) {
+        collectionGids = await resolveCollectionGids(item.collections);
+      }
+
+      const payload = buildProductSetPayload(item, locationId, collectionGids);
 
       try {
-        const response: any = await executeGraphQL(PRODUCT_SET_MUTATION, {
+        let response: any = await executeGraphQL(PRODUCT_SET_MUTATION, {
           synchronous: true,
           input: payload,
         });
+
+        if (
+          payload.id &&
+          response.data?.productSet?.userErrors?.some((e: any) =>
+            e.message?.toLowerCase().includes('does not exist')
+          )
+        ) {
+          const retryPayload = { ...payload };
+          delete retryPayload.id;
+          response = await executeGraphQL(PRODUCT_SET_MUTATION, {
+            synchronous: true,
+            input: retryPayload,
+          });
+        }
 
         if (response.errors && response.errors.length > 0) {
           results.push({
@@ -79,7 +99,6 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Small pacing delay between multiple items
       if (i < products.length - 1) {
         await new Promise((r) => setTimeout(r, 600));
       }

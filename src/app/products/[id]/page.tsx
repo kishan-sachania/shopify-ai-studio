@@ -79,19 +79,20 @@ export default function ProductDetailPage({ params }: PageProps) {
       }
 
       const generatedSentence: string = data.text;
-      const baseHtml = product.descriptionHtml && product.descriptionHtml.trim() !== '<p></p>'
-        ? product.descriptionHtml.trim()
-        : `<p>${product.title}</p>`;
+      const existingHtml = product.descriptionHtml ? product.descriptionHtml.trim() : '';
+      const prefix = existingHtml && existingHtml !== `<p>${product.title}</p>` && existingHtml !== '<p></p>'
+        ? `${existingHtml}\n`
+        : '';
 
       // Stream / typewriter effect letter-by-letter
       let currentAppended = '';
       for (let i = 0; i < generatedSentence.length; i++) {
         currentAppended += generatedSentence[i];
-        setStreamedDesc(`${baseHtml}\n<p>${currentAppended}</p>`);
+        setStreamedDesc(`${prefix}<p>${currentAppended}</p>`);
         await new Promise((r) => setTimeout(r, 16));
       }
 
-      const finalHtml = `${baseHtml}\n<p>${generatedSentence}</p>`;
+      const finalHtml = `${prefix}<p>${generatedSentence}</p>`;
       updateProduct(product.id, { descriptionHtml: finalHtml });
       setStreamedDesc(null);
       setPushFeedback({
@@ -381,7 +382,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                   Vendor
                 </div>
                 <div className="text-sm font-semibold text-slate-800 mt-1 truncate" title={product.vendor}>
-                  {product.vendor || 'None'}
+                  {product.vendor || '—'}
                 </div>
               </div>
 

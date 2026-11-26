@@ -68,7 +68,12 @@ export function useLocalStorageProducts() {
           return {
             ...item,
             status,
-            shopifyId: extra?.shopifyId || item.shopifyId,
+            shopifyId:
+              extra?.shopifyId !== undefined
+                ? extra.shopifyId
+                : status === 'ERROR' && extra?.errors?.some((e) => e.includes('does not exist'))
+                ? undefined
+                : item.shopifyId,
             shopifyHandle: extra?.shopifyHandle || item.shopifyHandle,
             shopify_product_url: extra?.shopifyUrl || item.shopify_product_url,
             errorMessages: extra?.errors || item.errorMessages,

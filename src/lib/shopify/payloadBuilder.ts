@@ -1,6 +1,10 @@
 import { ExtractedProduct } from '@/types/product';
 
-export function buildProductSetPayload(item: ExtractedProduct, locationId?: string | null) {
+export function buildProductSetPayload(
+  item: ExtractedProduct,
+  locationId?: string | null,
+  collectionGids?: string[]
+) {
   const flavor = (item.variant_or_flavor || '').trim();
   const isGeneric =
     !flavor ||
@@ -23,12 +27,18 @@ export function buildProductSetPayload(item: ExtractedProduct, locationId?: stri
     .filter((u) => typeof u === 'string' && u.startsWith('http'))
     .map((url) => ({ originalSource: url }));
 
+  const validShopifyId =
+    typeof item.shopifyId === 'string' && item.shopifyId.startsWith('gid://shopify/Product/')
+      ? item.shopifyId
+      : undefined;
+
   return {
     title,
-    descriptionHtml: item.descriptionHtml || `<p>${title}</p>`,
+    descriptionHtml: item.descriptionHtml || '',
     vendor: item.vendor || '',
     productType: item.productType || '',
     tags: Array.isArray(item.tags) ? item.tags : [],
+    ...(collectionGids && collectionGids.length > 0 ? { collections: collectionGids } : {}),
     status: 'ACTIVE',
     productOptions: [
       {
@@ -58,6 +68,6 @@ export function buildProductSetPayload(item: ExtractedProduct, locationId?: stri
       },
     ],
     files,
-    ...(item.shopifyId ? { id: item.shopifyId } : {}),
+    ...(validShopifyId ? { id: validShopifyId } : {}),
   };
 }

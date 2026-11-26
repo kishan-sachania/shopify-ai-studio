@@ -17,6 +17,9 @@ export const FIELD_MAP: Record<string, ExcelColumnFieldConfig> = {
   'stock_qty': { key: 'inventoryQuantity', type: 'number', default: 2 },
   'Stock': { key: 'inventoryQuantity', type: 'number', default: 2 },
   'Brand': { key: 'vendor', type: 'string', default: '' },
+  'brand': { key: 'vendor', type: 'string', default: '' },
+  'Vendor': { key: 'vendor', type: 'string', default: '' },
+  'vendor': { key: 'vendor', type: 'string', default: '' },
   'HTML Description': { key: 'descriptionHtml', type: 'string', default: '' },
 
   // Task-sheet specific columns
@@ -26,6 +29,10 @@ export const FIELD_MAP: Record<string, ExcelColumnFieldConfig> = {
   'task_status': { key: 'task_status', type: 'string', default: '' },
   'source_url': { key: 'source_url', type: 'string', default: '' },
   'shopify_product_url': { key: 'shopify_product_url', type: 'string', default: '' },
+  'live_url': { key: 'live_url', type: 'string', default: '' },
+  'Live URL': { key: 'live_url', type: 'string', default: '' },
+  'updated_at': { key: 'sheet_updated_at', type: 'string', default: '' },
+  'Updated At': { key: 'sheet_updated_at', type: 'string', default: '' },
   'notes': { key: 'notes', type: 'string', default: '' },
 };
 
@@ -48,7 +55,7 @@ export function castCellValue(rawValue: any, config: ExcelColumnFieldConfig): an
       return Boolean(value);
     case 'array':
       return String(value)
-        .split(',')
+        .split(/[\r\n,]+/)
         .map((item) => item.trim())
         .filter(Boolean);
     case 'string':

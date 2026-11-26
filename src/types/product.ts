@@ -17,6 +17,8 @@ export interface ExtractedProduct {
   task_status?: string;
   source_url?: string;
   shopify_product_url?: string;
+  live_url?: string;
+  sheet_updated_at?: string;
   notes?: string;
 
   // Local state & Shopify linkage

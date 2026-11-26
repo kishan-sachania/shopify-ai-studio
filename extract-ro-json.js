@@ -20,6 +20,9 @@ const FIELD_MAP = {
   'stock_qty': { key: 'inventoryQuantity', type: 'number', default: 2 },
   'Stock': { key: 'inventoryQuantity', type: 'number', default: 2 },
   'Brand': { key: 'vendor', type: 'string', default: '' },
+  'brand': { key: 'vendor', type: 'string', default: '' },
+  'Vendor': { key: 'vendor', type: 'string', default: '' },
+  'vendor': { key: 'vendor', type: 'string', default: '' },
   'HTML Description': { key: 'descriptionHtml', type: 'string', default: '' },
 
   // Additional task-sheet specific columns
@@ -29,6 +32,12 @@ const FIELD_MAP = {
   'task_status': { key: 'task_status', type: 'string', default: '' },
   'source_url': { key: 'source_url', type: 'string', default: '' },
   'shopify_product_url': { key: 'shopify_product_url', type: 'string', default: '' },
+  'live_url': { key: 'live_url', type: 'string', default: '' },
+  'Live URL': { key: 'live_url', type: 'string', default: '' },
+  'updated_at': { key: 'sheet_updated_at', type: 'string', default: '' },
+  'Updated At': { key: 'sheet_updated_at', type: 'string', default: '' },
+  'Collections': { key: 'collections', type: 'array' },
+  'collections': { key: 'collections', type: 'array' },
   'notes': { key: 'notes', type: 'string', default: '' },
 };
 
@@ -51,7 +60,7 @@ function castValue(rawValue, config) {
       return Boolean(value);
     case 'array':
       return String(value)
-        .split(',')
+        .split(/[\r\n,]+/)
         .map((item) => item.trim())
         .filter(Boolean);
     case 'string':
@@ -132,9 +141,9 @@ async function extractExcelToJson() {
       return;
     }
 
-    // Set default descriptionHtml = title per instructions
+    // Ensure descriptionHtml is empty if not present in sheet
     if (!item.descriptionHtml) {
-      item.descriptionHtml = item.title ? `<p>${item.title}</p>` : '';
+      item.descriptionHtml = '';
     }
 
     // Ensure vendor key exists

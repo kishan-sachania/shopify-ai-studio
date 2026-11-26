@@ -70,22 +70,23 @@ export function ProductEditDrawer({
       }
 
       const generatedSentence: string = data.text;
-      const baseHtml = form.descriptionHtml && form.descriptionHtml.trim() !== '<p></p>'
-        ? form.descriptionHtml.trim()
-        : `<p>${form.title}</p>`;
+      const existingHtml = form.descriptionHtml ? form.descriptionHtml.trim() : '';
+      const prefix = existingHtml && existingHtml !== `<p>${form.title}</p>` && existingHtml !== '<p></p>'
+        ? `${existingHtml}\n`
+        : '';
 
       // Stream / typewriter letter-by-letter
       let currentAppended = '';
       for (let i = 0; i < generatedSentence.length; i++) {
         currentAppended += generatedSentence[i];
         setForm((prev) =>
-          prev ? { ...prev, descriptionHtml: `${baseHtml}\n<p>${currentAppended}</p>` } : null
+          prev ? { ...prev, descriptionHtml: `${prefix}<p>${currentAppended}</p>` } : null
         );
         await new Promise((r) => setTimeout(r, 16));
       }
 
       setForm((prev) =>
-        prev ? { ...prev, descriptionHtml: `${baseHtml}\n<p>${generatedSentence}</p>` } : null
+        prev ? { ...prev, descriptionHtml: `${prefix}<p>${generatedSentence}</p>` } : null
       );
     } catch (err: any) {
       alert(`AI Generation error: ${err.message}`);

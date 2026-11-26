@@ -129,11 +129,83 @@ export const GET_LOCATION_QUERY = `
     locations(first: 1) {
       nodes {
         id
-        name
       }
     }
   }
 `;
+
+export const CREATE_COLLECTION_MUTATION = `
+  mutation createCollection($input: CollectionInput!) {
+    collectionCreate(input: $input) {
+      collection {
+        id
+        title
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+const collectionCache = new Map<string, string>();
+
+export async function ensureCollectionGid(title: string): Promise<string | null> {
+  const cleanTitle = title.trim();
+  if (!cleanTitle) return null;
+
+  const cacheKey = cleanTitle.toLowerCase();
+  if (collectionCache.has(cacheKey)) {
+    return collectionCache.get(cacheKey)!;
+  }
+
+  try {
+    const query = `
+      query findCollection($q: String!) {
+        collections(first: 5, query: $q) {
+          nodes {
+            id
+            title
+          }
+        }
+      }
+    `;
+    const searchRes = await executeGraphQL<any>(query, { q: `title:"${cleanTitle}"` });
+    const existing = searchRes?.data?.collections?.nodes?.find(
+      (c: any) => c.title.toLowerCase() === cleanTitle.toLowerCase()
+    );
+
+    if (existing?.id) {
+      collectionCache.set(cacheKey, existing.id);
+      return existing.id;
+    }
+
+    const createRes = await executeGraphQL<any>(CREATE_COLLECTION_MUTATION, {
+      input: { title: cleanTitle },
+    });
+
+    const newColl = createRes?.data?.collectionCreate?.collection;
+    if (newColl?.id) {
+      collectionCache.set(cacheKey, newColl.id);
+      return newColl.id;
+    }
+  } catch (err) {
+    console.warn(`[Shopify Collections] Failed to ensure collection "${cleanTitle}":`, err);
+  }
+  return null;
+}
+
+export async function resolveCollectionGids(collectionNames: string[]): Promise<string[]> {
+  const gids: string[] = [];
+  for (const name of collectionNames) {
+    const gid = await ensureCollectionGid(name);
+    if (gid) {
+      gids.push(gid);
+    }
+  }
+  return gids;
+}
 
 export const PRODUCT_SET_MUTATION = `
   mutation createProduct($input: ProductSetInput!, $synchronous: Boolean!) {
