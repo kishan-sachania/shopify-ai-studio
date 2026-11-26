@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { FileSpreadsheet, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { FileSpreadsheet, Loader2 } from 'lucide-react';
 import { useLocalStorageProducts } from '@/hooks/useLocalStorageProducts';
 import { usePagination } from '@/hooks/usePagination';
 import { useShopifyPush } from '@/hooks/useShopifyPush';
@@ -158,7 +158,6 @@ export default function ProductsPage() {
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
         selectedCount={selectedIds.size}
-        totalFiltered={totalItems}
         onPushSelected={handlePushSelected}
         onClearAll={clearAllProducts}
         isPushing={isPushing}

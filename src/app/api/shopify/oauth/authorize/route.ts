@@ -50,6 +50,13 @@ export async function GET(req: NextRequest) {
 
     const signedState = `${statePayload}.${signature}`;
 
+    const signature = crypto
+      .createHmac('sha256', clientSecret)
+      .update(statePayload)
+      .digest('base64url');
+
+    const signedState = `${statePayload}.${signature}`;
+
     let baseUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
     if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
       baseUrl = `https://${baseUrl}`;

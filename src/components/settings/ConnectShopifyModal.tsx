@@ -7,12 +7,10 @@ interface ConnectShopifyModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultWorkspaceId?: string;
-  onConnected?: () => void;
 }
 
 export function ConnectShopifyModal({ isOpen, onClose, defaultWorkspaceId }: ConnectShopifyModalProps) {
   const [domain, setDomain] = useState('');
-  const [workspaceName, setWorkspaceName] = useState('');
   const [error, setError] = useState('');
 
   if (!isOpen) return null;

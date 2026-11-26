@@ -25,11 +25,6 @@ export function useLocalStorageProducts() {
     }
   }, []);
 
-  const saveProducts = useCallback((items: ExtractedProduct[]) => {
-    setProducts(items);
-    setStoredProductsRaw(items);
-  }, []);
-
   const bulkAddProducts = useCallback((newItems: ExtractedProduct[]) => {
     setProducts((prev) => {
       // Avoid duplicate IDs
@@ -104,7 +99,6 @@ export function useLocalStorageProducts() {
   return {
     products,
     isLoaded,
-    saveProducts,
     bulkAddProducts,
     updateProduct,
     updateProductStatus,

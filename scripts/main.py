@@ -1,4 +1,4 @@
-import hashlib, json, os
+import hashlib, json
 from pathlib import Path
 from dotenv import load_dotenv
 import groq

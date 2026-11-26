@@ -1,13 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const { searchParams } = new URL(req.url);
+    const workspaceId = searchParams.get('workspaceId');
+
     const supabase = getSupabaseServerClient();
-    const { data: connections, error } = await supabase
+    let query = supabase
       .from('workspace_shopify_connections')
       .select('id, workspace_id, shop_domain, status, installed_at')
       .order('installed_at', { ascending: false });
+
+    if (workspaceId) {
+      query = query.eq('workspace_id', workspaceId);
+    }
+
+    const { data: connections, error } = await query;
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });

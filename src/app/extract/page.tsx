@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, CheckCircle2, AlertTriangle, FileSpreadsheet } from 'lucide-react';
+import { ArrowRight, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { FileDropzone } from '@/components/extract/FileDropzone';
 import { useLocalStorageProducts } from '@/hooks/useLocalStorageProducts';
 import { ExtractedProduct, ExtractionSummary } from '@/types/product';

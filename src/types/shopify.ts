@@ -1,16 +1,3 @@
-export interface ShopifyCredentials {
-  shopDomain: string;
-  apiVersion: string;
-  accessToken?: string;
-  clientId?: string;
-  clientSecret?: string;
-}
-
-export interface ShopifyLocation {
-  id: string;
-  name?: string;
-}
-
 export interface ShopifyUserError {
   field?: string[];
   message: string;

@@ -1,7 +1,7 @@
 import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { decryptToken } from '@/lib/security/crypto';
 
-export interface WorkspaceShopifyClient {
+interface WorkspaceShopifyClient {
   shopDomain: string;
   apiVersion: string;
   executeGraphQL: <T = any>(query: string, variables?: Record<string, any>) => Promise<T>;

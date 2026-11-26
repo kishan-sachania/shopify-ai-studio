@@ -1,6 +1,6 @@
 'use client';
 
-import { Search, Filter, Trash2, ArrowUpRight } from 'lucide-react';
+import { Search, Trash2, ArrowUpRight } from 'lucide-react';
 import { ProductPushStatus } from '@/types/product';
 
 interface ProductFilterBarProps {
@@ -9,7 +9,6 @@ interface ProductFilterBarProps {
   statusFilter: ProductPushStatus | 'ALL';
   onStatusFilterChange: (status: ProductPushStatus | 'ALL') => void;
   selectedCount: number;
-  totalFiltered: number;
   onPushSelected: () => void;
   onClearAll: () => void;
   isPushing: boolean;
@@ -21,7 +20,6 @@ export function ProductFilterBar({
   statusFilter,
   onStatusFilterChange,
   selectedCount,
-  totalFiltered,
   onPushSelected,
   onClearAll,
   isPushing,
