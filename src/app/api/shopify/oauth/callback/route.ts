@@ -25,6 +25,27 @@ function verifyShopifyHmac(searchParams: URLSearchParams, secret: string): boole
   return crypto.timingSafeEqual(hmacBuf, compBuf);
 }
 
+function verifyStateSignature(state: string, secret: string): { workspaceId: string; nonce: string; timestamp: number } | null {
+  const parts = state.split('.');
+  if (parts.length !== 2) return null;
+
+  const [payload, signature] = parts;
+  const expectedSignature = crypto.createHmac('sha256', secret).update(payload).digest('base64url');
+
+  const sigBuf = Buffer.from(signature);
+  const expBuf = Buffer.from(expectedSignature);
+
+  if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -47,11 +68,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid HMAC signature from Shopify' }, { status: 403 });
     }
 
-    let parsedState: { workspaceId: string; nonce: string; timestamp: number };
-    try {
-      parsedState = JSON.parse(Buffer.from(state, 'base64url').toString('utf8'));
-    } catch {
-      return NextResponse.json({ error: 'Invalid state format' }, { status: 400 });
+    const parsedState = verifyStateSignature(state, clientSecret);
+    if (!parsedState) {
+      return NextResponse.json({ error: 'Invalid or forged OAuth state signature' }, { status: 403 });
     }
 
     if (Date.now() - parsedState.timestamp > 15 * 60 * 1000) {
@@ -110,10 +129,16 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: `Failed to save connection: ${dbError.message}` }, { status: 500 });
     }
 
-    const destination = new URL('/products', req.nextUrl.origin);
-    destination.searchParams.set('shop', shop);
-    destination.searchParams.set('status', 'connected');
-    return NextResponse.redirect(destination.toString());
+    let baseUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
+    if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
+      baseUrl = `https://${baseUrl}`;
+    }
+
+    const redirectUrl = new URL('/products', baseUrl);
+    redirectUrl.searchParams.set('shop', shop);
+    redirectUrl.searchParams.set('connected', 'true');
+
+    return NextResponse.redirect(redirectUrl.toString());
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'OAuth callback failed' }, { status: 500 });
   }

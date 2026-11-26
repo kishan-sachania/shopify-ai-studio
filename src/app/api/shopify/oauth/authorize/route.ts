@@ -30,23 +30,37 @@ export async function GET(req: NextRequest) {
     }
 
     const clientId = process.env.SHOPIFY_CLIENT_ID;
-    if (!clientId) {
+    const clientSecret = process.env.SHOPIFY_CLIENT_SECRET;
+    if (!clientId || !clientSecret) {
       return NextResponse.json(
-        { error: 'Server misconfiguration: SHOPIFY_CLIENT_ID missing' },
+        { error: 'Server misconfiguration: Shopify credentials missing' },
         { status: 500 }
       );
     }
 
     const nonce = crypto.randomBytes(16).toString('hex');
-    const statePayload = Buffer.from(JSON.stringify({ workspaceId, nonce, timestamp: Date.now() })).toString('base64url');
+    const statePayload = Buffer.from(
+      JSON.stringify({ workspaceId, nonce, timestamp: Date.now() })
+    ).toString('base64url');
 
-    const baseUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
+    const signature = crypto
+      .createHmac('sha256', clientSecret)
+      .update(statePayload)
+      .digest('base64url');
+
+    const signedState = `${statePayload}.${signature}`;
+
+    let baseUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
+    if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
+      baseUrl = `https://${baseUrl}`;
+    }
+
     const redirectUri = `${baseUrl.replace(/\/$/, '')}/api/shopify/oauth/callback`;
     const scopes = 'read_products,write_products,read_inventory,write_inventory';
 
     const authUrl = `https://${shopDomain}/admin/oauth/authorize?client_id=${clientId}&scope=${encodeURIComponent(
       scopes
-    )}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${statePayload}`;
+    )}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${signedState}`;
 
     return NextResponse.redirect(authUrl);
   } catch (err: any) {
