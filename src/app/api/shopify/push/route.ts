@@ -175,7 +175,8 @@ export async function POST(req: NextRequest) {
       targetPublicationInputs = pubNodes
         .filter((p: any) => p?.id)
         .map((p: any) => ({ publicationId: p.id }));
-    } catch {
+    } catch (err) {
+      console.error('Failed to query publications:', err);
       targetPublicationInputs = [];
     }
 
@@ -235,12 +236,15 @@ export async function POST(req: NextRequest) {
           } else if (product?.id) {
             if (targetPublicationInputs.length > 0) {
               try {
-                await runner.execute(PUBLISHABLE_PUBLISH_MUTATION, {
+                const pubOutput: any = await runner.execute(PUBLISHABLE_PUBLISH_MUTATION, {
                   id: product.id,
                   input: targetPublicationInputs,
                 });
-              } catch {
-                // Retain product success if publication encounters partial channel restriction
+                if (pubOutput?.data?.publishablePublish?.userErrors?.length > 0) {
+                  console.error('Publish userErrors:', pubOutput.data.publishablePublish.userErrors);
+                }
+              } catch (err) {
+                console.error('Failed to execute publishablePublish:', err);
               }
             }
 
