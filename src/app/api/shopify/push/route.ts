@@ -16,6 +16,28 @@ const GET_PRIMARY_LOCATION_QUERY = `
   }
 `;
 
+const GET_PUBLICATIONS_QUERY = `
+  query GetPublications {
+    publications(first: 50) {
+      nodes {
+        id
+        name
+      }
+    }
+  }
+`;
+
+const PUBLISHABLE_PUBLISH_MUTATION = `
+  mutation publishProduct($id: ID!, $input: [PublicationInput!]!) {
+    publishablePublish(id: $id, input: $input) {
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
 const FIND_COLLECTION_QUERY = `
   query findCollection($q: String!) {
     collections(first: 5, query: $q) {
@@ -146,6 +168,17 @@ export async function POST(req: NextRequest) {
       };
     }
 
+    let targetPublicationInputs: { publicationId: string }[] = [];
+    try {
+      const pubRes: any = await runner.execute(GET_PUBLICATIONS_QUERY);
+      const pubNodes = pubRes?.data?.publications?.nodes || pubRes?.publications?.nodes || [];
+      targetPublicationInputs = pubNodes
+        .filter((p: any) => p?.id)
+        .map((p: any) => ({ publicationId: p.id }));
+    } catch {
+      targetPublicationInputs = [];
+    }
+
     const results: PushResult[] = [];
     const collectionCache = new Map<string, string>();
 
@@ -200,6 +233,17 @@ export async function POST(req: NextRequest) {
               errors: userErrors.map((e: any) => e.message),
             });
           } else if (product?.id) {
+            if (targetPublicationInputs.length > 0) {
+              try {
+                await runner.execute(PUBLISHABLE_PUBLISH_MUTATION, {
+                  id: product.id,
+                  input: targetPublicationInputs,
+                });
+              } catch {
+                // Retain product success if publication encounters partial channel restriction
+              }
+            }
+
             const productNumericId = product.id.split('/').pop();
             const shopifyUrl = runner.shopDomain
               ? `https://${runner.shopDomain}/admin/products/${productNumericId}`
