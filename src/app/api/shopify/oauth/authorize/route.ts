@@ -43,8 +43,6 @@ export async function GET(req: NextRequest) {
       JSON.stringify({ workspaceId, nonce, timestamp: Date.now() })
     ).toString('base64url');
 
-
-
     const signature = crypto
       .createHmac('sha256', clientSecret)
       .update(statePayload)
@@ -58,7 +56,7 @@ export async function GET(req: NextRequest) {
     }
 
     const redirectUri = `${baseUrl.replace(/\/$/, '')}/api/shopify/oauth/callback`;
-    const scopes = 'read_products,write_products,read_inventory,write_inventory';
+    const scopes = 'read_products,write_products,read_inventory,write_inventory,read_publications,write_publications';
 
     const authUrl = `https://${shopDomain}/admin/oauth/authorize?client_id=${clientId}&scope=${encodeURIComponent(
       scopes
