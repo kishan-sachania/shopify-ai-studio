@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { FileSpreadsheet, Loader2 } from 'lucide-react';
 import { useLocalStorageProducts } from '@/hooks/useLocalStorageProducts';
@@ -55,14 +55,6 @@ export default function ProductsPage() {
     }
   };
 
-  useEffect(() => {
-    const wsId = authWsId || (typeof window !== 'undefined' ? localStorage.getItem('active_workspace_id') : null);
-    if (wsId && isLoaded) {
-      handleVerifySync();
-    }
-  }, [authWsId, isLoaded]);
-
-  // Shopify Push hook
   const { isPushing, progress, currentTitle, pushSingleProduct, pushBatch } = useShopifyPush({
     onProductPushed: (productId, success, details) => {
       updateProductStatus(
@@ -73,7 +65,6 @@ export default function ProductsPage() {
     },
   });
 
-  // Filter products by search and status
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       const matchesStatus = statusFilter === 'ALL' || p.status === statusFilter;
@@ -90,7 +81,6 @@ export default function ProductsPage() {
     });
   }, [products, statusFilter, searchQuery]);
 
-  // Pagination hook
   const {
     currentPage,
     pageSize,
@@ -101,7 +91,6 @@ export default function ProductsPage() {
     changePageSize,
   } = usePagination({ items: filteredProducts, initialPageSize: 10 });
 
-  // Selection handlers
   const handleToggleSelect = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);

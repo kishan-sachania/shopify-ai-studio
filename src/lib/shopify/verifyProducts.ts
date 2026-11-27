@@ -14,6 +14,7 @@ const GET_ALL_SHOPIFY_PRODUCTS_QUERY = `
         title
         handle
         status
+        vendor
         variants(first: 100) {
           nodes {
             id
@@ -37,6 +38,7 @@ const SEARCH_SHOPIFY_PRODUCT_QUERY = `
         title
         handle
         status
+        vendor
         variants(first: 100) {
           nodes {
             id
@@ -55,6 +57,7 @@ const SEARCH_SHOPIFY_PRODUCT_QUERY = `
 function normalize(str: string): string {
   return str
     .toLowerCase()
+    .replace(/\bfb\s+beast\b/g, 'flavour beast')
     .replace(/\bfb\b/g, 'flavour beast')
     .replace(/drip\s*'?\s*n/g, 'dripn')
     .replace(/geek\s*bar/g, 'geekbar')
@@ -77,7 +80,35 @@ function isGenericFlavor(flavor: string): boolean {
   );
 }
 
+function tokenize(str: string): string[] {
+  return str
+    .split(' ')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0 && s !== 'x');
+}
+
+function getModelTokens(tokens: string[]): string[] {
+  return tokens.filter((t) => /\d/.test(t) && !/^\d+(mg|ml)$/.test(t));
+}
+
+function matchesVendor(itemVendor?: string, shopVendor?: string): boolean {
+  const normItem = normalize(itemVendor || '');
+  const normShop = normalize(shopVendor || '');
+  if (!normItem || !normShop) {
+    return true;
+  }
+
+  const itemTokens = tokenize(normItem);
+  const shopTokens = new Set(tokenize(normShop));
+
+  return itemTokens.some((t) => shopTokens.has(t)) || Array.from(shopTokens).some((t) => itemTokens.includes(t));
+}
+
 function matchesShopifyProduct(item: ExtractedProduct, shopifyNode: any): boolean {
+  if (!matchesVendor(item.vendor, shopifyNode.vendor)) {
+    return false;
+  }
+
   const itemTitle = normalize(item.title);
   const flavor = normalize(item.variant_or_flavor || '');
   const shopTitle = normalize(shopifyNode.title || '');
@@ -86,49 +117,55 @@ function matchesShopifyProduct(item: ExtractedProduct, shopifyNode: any): boolea
     return false;
   }
 
-  if (isGenericFlavor(flavor)) {
-    if (shopTitle === itemTitle || shopTitle.includes(itemTitle) || itemTitle.includes(shopTitle)) {
-      return true;
-    }
+  const itemTokens = tokenize(itemTitle);
+  const shopTokens = new Set(tokenize(shopTitle));
+
+  const hasAllTitleTokens =
+    itemTokens.length > 0 &&
+    itemTokens.every((token) => shopTokens.has(token));
+
+  if (!hasAllTitleTokens) {
+    return false;
   }
 
-  const combined = `${itemTitle} ${flavor}`.trim();
-  if (shopTitle === combined || shopTitle.includes(combined)) {
+  const itemModels = getModelTokens(itemTokens);
+  const shopModels = getModelTokens(Array.from(shopTokens));
+
+  for (const m of itemModels) {
+    if (!shopTokens.has(m)) return false;
+  }
+  for (const m of shopModels) {
+    if (!itemTokens.includes(m)) return false;
+  }
+
+  if (isGenericFlavor(flavor)) {
     return true;
   }
 
-  const titleWords = Array.from(new Set(itemTitle.split(' ').filter((w) => w.length > 2)));
-  const titleMatches = titleWords.length > 0 && titleWords.every((w) => shopTitle.includes(w));
-
-  if (titleMatches) {
-    if (isGenericFlavor(flavor)) {
-      return true;
-    }
-
-    const flavorWords = Array.from(new Set(flavor.split(' ').filter((w) => w.length > 2)));
-    if (flavorWords.length > 0 && flavorWords.every((w) => shopTitle.includes(w))) {
-      return true;
-    }
-
-    const variants = shopifyNode.variants?.nodes || [];
-    const variantMatches = variants.some((v: any) => {
-      const vTitle = normalize(v.title || '');
-      if (flavorWords.length > 0 && flavorWords.every((w) => vTitle.includes(w))) {
-        return true;
-      }
-      const opts = v.selectedOptions || [];
-      return opts.some((o: any) => {
-        const val = normalize(o.value || '');
-        return flavorWords.length > 0 && flavorWords.every((w) => val.includes(w));
-      });
-    });
-
-    if (variantMatches) {
-      return true;
-    }
+  const flavorTokens = tokenize(flavor);
+  if (flavorTokens.length === 0) {
+    return true;
   }
 
-  return false;
+  const titleHasFlavor = flavorTokens.every((fToken) => shopTokens.has(fToken));
+  if (titleHasFlavor) {
+    return true;
+  }
+
+  const variants = shopifyNode.variants?.nodes || [];
+  return variants.some((v: any) => {
+    const vTitle = normalize(v.title || '');
+    const vTokens = new Set(tokenize(vTitle));
+    if (flavorTokens.every((fToken) => vTokens.has(fToken))) {
+      return true;
+    }
+    const opts = v.selectedOptions || [];
+    return opts.some((o: any) => {
+      const val = normalize(o.value || '');
+      const valTokens = new Set(tokenize(val));
+      return flavorTokens.every((fToken) => valTokens.has(fToken));
+    });
+  });
 }
 
 async function getExecutor(workspaceId?: string | null) {
@@ -200,16 +237,6 @@ export async function verifyProductsWithShopify(
   const queryCache = new Map<string, any[]>();
 
   const verifyItem = async (item: ExtractedProduct): Promise<ExtractedProduct> => {
-    if (item.shopify_product_url || (item.live_url && item.live_url.includes('myshopify.com'))) {
-      const url = item.shopify_product_url || item.live_url;
-      return {
-        ...item,
-        status: 'PUSHED',
-        shopify_product_url: url,
-        lastPushedAt: item.sheet_updated_at || new Date().toISOString(),
-      };
-    }
-
     if (!runner || !item.title) {
       return item;
     }
@@ -238,7 +265,14 @@ export async function verifyProductsWithShopify(
     }
 
     if (!matched) {
-      return item;
+      return {
+        ...item,
+        status: 'READY',
+        shopifyId: undefined,
+        shopifyHandle: undefined,
+        shopify_product_url: undefined,
+        lastPushedAt: undefined,
+      };
     }
 
     const numericId = matched.id.replace('gid://shopify/Product/', '');
@@ -251,7 +285,7 @@ export async function verifyProductsWithShopify(
       status: 'PUSHED',
       shopifyId: matched.id,
       shopifyHandle: matched.handle,
-      lastPushedAt: new Date().toISOString(),
+      lastPushedAt: item.lastPushedAt || new Date().toISOString(),
       shopify_product_url: productUrl,
     };
   };
