@@ -104,7 +104,6 @@ export default function ProductDetailPage({ params }: PageProps) {
         ? `${existingHtml}\n`
         : '';
 
-      // Stream / typewriter effect letter-by-letter
       let currentAppended = '';
       for (let i = 0; i < generatedSentence.length; i++) {
         currentAppended += generatedSentence[i];
@@ -281,14 +280,18 @@ export default function ProductDetailPage({ params }: PageProps) {
           <button
             onClick={handlePush}
             disabled={isPushingLocal}
-            className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm disabled:opacity-50 transition"
+            className={`inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-lg text-white shadow-sm disabled:opacity-50 transition ${
+              product.status === 'NEEDS_UPDATE'
+                ? 'bg-amber-600 hover:bg-amber-700'
+                : 'bg-emerald-600 hover:bg-emerald-700'
+            }`}
           >
             {isPushingLocal ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
               <ArrowUpRight className="h-3.5 w-3.5" />
             )}
-            Push to Shopify
+            {product.status === 'NEEDS_UPDATE' ? 'Update on Shopify' : 'Push to Shopify'}
           </button>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { ExtractedProduct } from '@/types/product';
+import { ExtractedProduct, ProductPushStatus } from '@/types/product';
 import { getShopifyConfig, executeGraphQL } from '@/lib/shopify/client';
 import { getShopifyClientForWorkspace } from '@/lib/shopify/workspaceClient';
 
@@ -110,7 +110,6 @@ function matchesShopifyProduct(item: ExtractedProduct, shopifyNode: any): boolea
   }
 
   const itemTitle = normalize(item.title);
-  const flavor = normalize(item.variant_or_flavor || '');
   const shopTitle = normalize(shopifyNode.title || '');
 
   if (!itemTitle || !shopTitle) {
@@ -138,34 +137,104 @@ function matchesShopifyProduct(item: ExtractedProduct, shopifyNode: any): boolea
     if (!itemTokens.includes(m)) return false;
   }
 
+  return true;
+}
+
+function checkVariantFlavor(variants: any[], flavor: string, shopTitle: string): boolean {
   if (isGenericFlavor(flavor)) {
     return true;
   }
 
-  const flavorTokens = tokenize(flavor);
+  const flavorTokens = tokenize(normalize(flavor));
   if (flavorTokens.length === 0) {
     return true;
   }
 
-  const titleHasFlavor = flavorTokens.every((fToken) => shopTokens.has(fToken));
-  if (titleHasFlavor) {
+  const shopTokens = new Set(tokenize(normalize(shopTitle)));
+  if (flavorTokens.every((f) => shopTokens.has(f))) {
     return true;
   }
 
-  const variants = shopifyNode.variants?.nodes || [];
   return variants.some((v: any) => {
-    const vTitle = normalize(v.title || '');
-    const vTokens = new Set(tokenize(vTitle));
-    if (flavorTokens.every((fToken) => vTokens.has(fToken))) {
+    const vTokens = new Set(tokenize(normalize(v.title || '')));
+    if (flavorTokens.every((f) => vTokens.has(f))) {
       return true;
     }
     const opts = v.selectedOptions || [];
     return opts.some((o: any) => {
-      const val = normalize(o.value || '');
-      const valTokens = new Set(tokenize(val));
-      return flavorTokens.every((fToken) => valTokens.has(fToken));
+      const valTokens = new Set(tokenize(normalize(o.value || '')));
+      return flavorTokens.every((f) => valTokens.has(f));
     });
   });
+}
+
+function checkNicotineOptions(variants: any[], flavor: string): boolean {
+  const normFlavor = normalize(flavor || '');
+  const flavorTokens = tokenize(normFlavor);
+
+  const flavorVariants = variants.filter((v: any) => {
+    const vTokens = new Set(tokenize(normalize(v.title || '')));
+    if (flavorTokens.length > 0 && flavorTokens.every((f) => vTokens.has(f))) {
+      return true;
+    }
+    const opts = v.selectedOptions || [];
+    return opts.some((o: any) => {
+      const valTokens = new Set(tokenize(normalize(o.value || '')));
+      return flavorTokens.length > 0 && flavorTokens.every((f) => valTokens.has(f));
+    });
+  });
+
+  const targetVariants = flavorVariants.length > 0 ? flavorVariants : variants;
+
+  const has0mg = targetVariants.some((v: any) => {
+    const str = `${v.title || ''} ${(v.selectedOptions || []).map((o: any) => o.value).join(' ')}`.toLowerCase();
+    return /\b0\s*mg\b/.test(str) || /\b0mg\b/.test(str);
+  });
+
+  const has10mg = targetVariants.some((v: any) => {
+    const str = `${v.title || ''} ${(v.selectedOptions || []).map((o: any) => o.value).join(' ')}`.toLowerCase();
+    return /\b10\s*mg\b/.test(str) || /\b10mg\b/.test(str);
+  });
+
+  return has0mg && has10mg;
+}
+
+function evaluateProductStatus(item: ExtractedProduct, shopifyNode: any): ProductPushStatus {
+  const variants = shopifyNode.variants?.nodes || [];
+  const flavor = item.variant_or_flavor || '';
+  const hasFlavor = checkVariantFlavor(variants, flavor, shopifyNode.title || '');
+  const action = (item.action || '').toLowerCase();
+
+  if (action.includes('add flavor')) {
+    if (!hasFlavor) {
+      return 'NEEDS_UPDATE';
+    }
+    if (action.includes('0mg') && !checkNicotineOptions(variants, flavor)) {
+      return 'NEEDS_UPDATE';
+    }
+    return 'PUSHED';
+  }
+
+  if (action.includes('update existing')) {
+    if (action.includes('0mg')) {
+      if (!checkNicotineOptions(variants, flavor)) {
+        return 'NEEDS_UPDATE';
+      }
+      return 'PUSHED';
+    }
+    if (action.includes('sort') || action.includes('inventory') || action.includes('image')) {
+      if (item.task_status?.toLowerCase() === 'pending') {
+        return 'NEEDS_UPDATE';
+      }
+      return 'PUSHED';
+    }
+  }
+
+  if (action.includes('add new brand')) {
+    return hasFlavor ? 'PUSHED' : 'NEEDS_UPDATE';
+  }
+
+  return hasFlavor ? 'PUSHED' : 'NEEDS_UPDATE';
 }
 
 async function getExecutor(workspaceId?: string | null) {
@@ -275,6 +344,7 @@ export async function verifyProductsWithShopify(
       };
     }
 
+    const status = evaluateProductStatus(item, matched);
     const numericId = matched.id.replace('gid://shopify/Product/', '');
     const productUrl = runner.shopDomain
       ? `https://${runner.shopDomain}/admin/products/${numericId}`
@@ -282,10 +352,10 @@ export async function verifyProductsWithShopify(
 
     return {
       ...item,
-      status: 'PUSHED',
+      status,
       shopifyId: matched.id,
       shopifyHandle: matched.handle,
-      lastPushedAt: item.lastPushedAt || new Date().toISOString(),
+      lastPushedAt: status === 'PUSHED' ? (item.lastPushedAt || new Date().toISOString()) : item.lastPushedAt,
       shopify_product_url: productUrl,
     };
   };

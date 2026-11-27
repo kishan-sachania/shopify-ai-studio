@@ -44,7 +44,7 @@ export function ProductFilterBar({
       </div>
 
       <div className="flex items-center gap-1 overflow-x-auto py-1">
-        {(['ALL', 'READY', 'PUSHED', 'ERROR'] as const).map((st) => (
+        {(['ALL', 'READY', 'NEEDS_UPDATE', 'PUSHED', 'ERROR'] as const).map((st) => (
           <button
             key={st}
             onClick={() => onStatusFilterChange(st)}
@@ -54,7 +54,7 @@ export function ProductFilterBar({
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            {st === 'ALL' ? 'All' : st === 'READY' ? 'Ready' : st === 'PUSHED' ? 'Synced' : 'Failed'}
+            {st === 'ALL' ? 'All' : st === 'READY' ? 'Ready' : st === 'NEEDS_UPDATE' ? 'Needs Update' : st === 'PUSHED' ? 'Synced' : 'Failed'}
           </button>
         ))}
       </div>

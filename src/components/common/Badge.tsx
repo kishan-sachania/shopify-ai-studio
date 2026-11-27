@@ -12,6 +12,12 @@ export function Badge({ status }: BadgeProps) {
           Synced
         </span>
       );
+    case 'NEEDS_UPDATE':
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
+          Needs Update
+        </span>
+      );
     case 'READY':
       return (
         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">

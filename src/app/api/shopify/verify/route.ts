@@ -63,11 +63,13 @@ export async function POST(req: NextRequest) {
     }
 
     const syncedCount = verified.filter((p) => p.status === 'PUSHED').length;
+    const needsUpdateCount = verified.filter((p) => p.status === 'NEEDS_UPDATE').length;
 
     return NextResponse.json({
       success: true,
       count: verified.length,
       syncedCount,
+      needsUpdateCount,
       products: verified,
       shopifyStoreProducts,
       targetStore,

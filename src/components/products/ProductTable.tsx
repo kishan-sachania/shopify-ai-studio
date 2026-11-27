@@ -166,10 +166,14 @@ export function ProductTable({
                   <button
                     onClick={() => onPushProduct(item)}
                     disabled={isPushing}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded bg-slate-900 text-white hover:bg-emerald-600 disabled:opacity-40 transition-colors"
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded text-white disabled:opacity-40 transition-colors ${
+                      item.status === 'NEEDS_UPDATE'
+                        ? 'bg-amber-600 hover:bg-amber-700'
+                        : 'bg-slate-900 hover:bg-emerald-600'
+                    }`}
                   >
                     <ArrowUpRight className="h-3 w-3" />
-                    Push
+                    {item.status === 'NEEDS_UPDATE' ? 'Update' : 'Push'}
                   </button>
                 </td>
               </tr>
