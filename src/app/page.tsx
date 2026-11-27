@@ -14,7 +14,6 @@ export default function HomePage() {
 
   return (
     <div className="space-y-8">
-      {/* Hero Banner */}
       <div className="rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 p-8 sm:p-10 text-white shadow-lg">
         <div className="max-w-3xl space-y-4">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold border border-emerald-500/30">
@@ -25,7 +24,7 @@ export default function HomePage() {
             Shopify Product Automation Suite
           </h1>
           <p className="text-slate-300 text-base sm:text-lg leading-relaxed">
-            Extract product datasets directly from Excel workbooks, stage and inspect items in browser local storage, and push them smoothly to your Shopify store with GraphQL rate-limiting protection.
+            Extract product datasets directly from Excel workbooks, stage and inspect items in your shared workspace, and push them smoothly to your Shopify store with GraphQL rate-limiting protection.
           </p>
 
           <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -47,7 +46,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Metrics Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between text-slate-500">
@@ -57,7 +55,7 @@ export default function HomePage() {
           <div className="mt-2 text-2xl font-bold text-slate-900">
             {isLoaded ? total : '-'}
           </div>
-          <p className="text-xs text-slate-400 mt-1">Saved in client localStorage</p>
+          <p className="text-xs text-slate-400 mt-1">Saved in Supabase workspace</p>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -94,7 +92,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Feature Highlights */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between">
           <div>

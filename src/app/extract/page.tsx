@@ -25,7 +25,7 @@ export default function ExtractPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">Extract Excel Products</h1>
         <p className="text-sm text-slate-500 mt-1">
-          Upload your product spreadsheet to automatically extract items, flavors, prices, and images into local storage.
+          Upload your product spreadsheet to automatically extract items, flavors, prices, and images into your workspace database.
         </p>
       </div>
 
