@@ -15,8 +15,10 @@ import {
   Loader2,
   Menu,
   X,
+  LogOut,
 } from 'lucide-react';
 import { ConnectShopifyModal } from '@/components/settings/ConnectShopifyModal';
+import { useAuth } from '@/context/AuthContext';
 
 interface Connection {
   id: string;
@@ -28,6 +30,7 @@ interface Connection {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { user, signOut } = useAuth();
   const [connections, setConnections] = useState<Connection[]>([]);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
@@ -273,13 +276,47 @@ export function Sidebar() {
         </nav>
       </div>
 
-      <div className="p-4 border-t border-slate-100">
-        <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-500 flex items-center justify-between">
+      <div className="p-4 border-t border-slate-100 space-y-3">
+        {user && (
+          <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-50 border border-slate-200/80">
+            <div className="flex items-center gap-2.5 min-w-0">
+              {user.user_metadata?.avatar_url ? (
+                <img
+                  src={user.user_metadata.avatar_url}
+                  alt={user.email || 'User'}
+                  className="h-7 w-7 rounded-full object-cover shrink-0"
+                />
+              ) : (
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-700">
+                  {user.email ? user.email.charAt(0).toUpperCase() : 'U'}
+                </span>
+              )}
+              <div className="truncate">
+                <span className="block truncate text-xs font-semibold text-slate-900 leading-tight">
+                  {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                </span>
+                <span className="block truncate text-[10px] text-slate-400">
+                  {user.email}
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={signOut}
+              title="Sign Out"
+              className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition shrink-0 cursor-pointer"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
+        <div className="rounded-xl bg-slate-50 p-2.5 text-xs text-slate-500 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="text-[11px] font-medium text-slate-700">GraphQL Admin API</span>
           </div>
-          <span className="text-[10px] text-slate-400">2024-10</span>
+          <span className="text-[10px] text-slate-400">2026-10</span>
         </div>
       </div>
     </div>
