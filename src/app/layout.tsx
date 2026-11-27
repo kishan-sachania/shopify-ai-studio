@@ -5,8 +5,18 @@ import { AuthProvider } from '@/context/AuthContext';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 
 export const metadata: Metadata = {
-  title: 'Shopify Product Automation Suite',
+  title: 'Product AI Studio',
   description: 'Extract Excel products and push to Shopify via GraphQL Admin API',
+  applicationName: 'Product AI Studio',
+  icons: {
+    icon: '/icon.svg',
+    apple: '/icon.svg',
+  },
+  openGraph: {
+    title: 'Product AI Studio',
+    description: 'Extract Excel products and push to Shopify via GraphQL Admin API',
+    siteName: 'Product AI Studio',
+  },
 };
 
 export default function RootLayout({

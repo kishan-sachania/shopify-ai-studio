@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, use } from 'react';
+import { useState, use, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
   ExternalLink,
   Edit3,
   ArrowUpRight,
@@ -38,6 +40,26 @@ export default function ProductDetailPage({ params }: PageProps) {
     useLocalStorageProducts();
 
   const product = products.find((p) => p.id === id);
+  const currentIndex = products.findIndex((p) => p.id === id);
+  const prevProduct = currentIndex > 0 ? products[currentIndex - 1] : null;
+  const nextProduct = currentIndex >= 0 && currentIndex < products.length - 1 ? products[currentIndex + 1] : null;
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
+      if (e.key === 'ArrowLeft' && prevProduct) {
+        router.push(`/products/${prevProduct.id}`);
+      } else if (e.key === 'ArrowRight' && nextProduct) {
+        router.push(`/products/${nextProduct.id}`);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [prevProduct, nextProduct, router]);
 
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<'preview' | 'html'>('preview');
@@ -177,13 +199,55 @@ export default function ProductDetailPage({ params }: PageProps) {
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Top Breadcrumb & Actions Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <Link
-          href="/products"
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 transition"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Products Catalog
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/products"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 transition"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Catalog
+          </Link>
+
+          {products.length > 1 && (
+            <div className="flex items-center gap-1 pl-3 border-l border-slate-200">
+              {prevProduct ? (
+                <Link
+                  href={`/products/${prevProduct.id}`}
+                  title={`Previous: ${prevProduct.title}`}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                  Prev
+                </Link>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed">
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                  Prev
+                </span>
+              )}
+
+              <span className="text-xs text-slate-500 font-medium px-2 whitespace-nowrap">
+                {currentIndex + 1} of {products.length}
+              </span>
+
+              {nextProduct ? (
+                <Link
+                  href={`/products/${nextProduct.id}`}
+                  title={`Next: ${nextProduct.title}`}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition"
+                >
+                  Next
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Link>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed">
+                  Next
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </span>
+              )}
+            </div>
+          )}
+        </div>
 
         <div className="flex flex-wrap items-center gap-2">
           {product.shopify_product_url && (
@@ -524,6 +588,40 @@ export default function ProductDetailPage({ params }: PageProps) {
           )}
         </div>
       </div>
+
+      {products.length > 1 && (
+        <div className="flex items-center justify-between gap-4 pt-4 border-t border-slate-200">
+          {prevProduct ? (
+            <Link
+              href={`/products/${prevProduct.id}`}
+              className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-white hover:border-emerald-300 hover:shadow-sm transition max-w-[45%]"
+            >
+              <ChevronLeft className="h-5 w-5 text-slate-400 shrink-0" />
+              <div className="min-w-0 text-left">
+                <span className="text-[10px] uppercase font-semibold text-slate-400 block">Previous Product</span>
+                <p className="text-xs font-medium text-slate-800 truncate">{prevProduct.title}</p>
+              </div>
+            </Link>
+          ) : (
+            <div />
+          )}
+
+          {nextProduct ? (
+            <Link
+              href={`/products/${nextProduct.id}`}
+              className="flex items-center justify-end gap-3 p-3 rounded-xl border border-slate-200 bg-white hover:border-emerald-300 hover:shadow-sm transition max-w-[45%] ml-auto"
+            >
+              <div className="min-w-0 text-right">
+                <span className="text-[10px] uppercase font-semibold text-slate-400 block">Next Product</span>
+                <p className="text-xs font-medium text-slate-800 truncate">{nextProduct.title}</p>
+              </div>
+              <ChevronRight className="h-5 w-5 text-slate-400 shrink-0" />
+            </Link>
+          ) : (
+            <div />
+          )}
+        </div>
+      )}
 
       {/* Edit Drawer */}
       <ProductEditDrawer

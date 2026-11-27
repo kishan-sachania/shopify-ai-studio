@@ -10,14 +10,28 @@ export interface WorkspaceShopifyClient {
 export async function getShopifyClientForWorkspace(workspaceId: string): Promise<WorkspaceShopifyClient> {
   const supabase = getSupabaseServerClient();
 
-  const { data: connection, error } = await supabase
+  let { data: connection, error } = await supabase
     .from('workspace_shopify_connections')
     .select('*')
     .eq('workspace_id', workspaceId)
-    .single();
+    .order('installed_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-  if (error || !connection) {
-    throw new Error(`Shopify connection not found for workspace ${workspaceId}`);
+  if (!connection) {
+    const { data: anyConn, error: anyErr } = await supabase
+      .from('workspace_shopify_connections')
+      .select('*')
+      .eq('status', 'CONNECTED')
+      .order('installed_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (anyConn) {
+      connection = anyConn;
+    } else {
+      throw new Error(`Shopify connection not found for workspace ${workspaceId}: ${error?.message || anyErr?.message || 'No connected rows in database'}`);
+    }
   }
 
   if (connection.status !== 'CONNECTED') {

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <defs>
+    <linearGradient id="studio-grad" x1="2" y1="2" x2="30" y2="30" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#059669" />
+      <stop offset="0.5" stop-color="#0D9488" />
+      <stop offset="1" stop-color="#2563EB" />
+    </linearGradient>
+    <linearGradient id="sparkle-grad" x1="10" y1="8" x2="22" y2="24" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" />
+      <stop offset="1" stop-color="#E0E7FF" />
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="8" fill="url(#studio-grad)" />
+  <path d="M16 6L18.4 12.6L25 15L18.4 17.4L16 24L13.6 17.4L7 15L13.6 12.6L16 6Z" fill="url(#sparkle-grad)" />
+  <circle cx="23.5" cy="8.5" r="1.75" fill="#FFFFFF" fill-opacity="0.9" />
+  <circle cx="8.5" cy="22.5" r="1.25" fill="#FFFFFF" fill-opacity="0.75" />
+</svg>
