@@ -16,12 +16,21 @@ const GET_PRIMARY_LOCATION_QUERY = `
   }
 `;
 
-const GET_PUBLICATIONS_QUERY = `
-  query GetPublications {
+const GET_ALL_PUBLICATIONS_AND_CATALOGS_QUERY = `
+  query GetAllPublicationsAndCatalogs {
     publications(first: 50) {
       nodes {
         id
         name
+      }
+    }
+    catalogs(first: 50) {
+      nodes {
+        id
+        title
+        publication {
+          id
+        }
       }
     }
   }
@@ -170,13 +179,22 @@ export async function POST(req: NextRequest) {
 
     let targetPublicationInputs: { publicationId: string }[] = [];
     try {
-      const pubRes: any = await runner.execute(GET_PUBLICATIONS_QUERY);
+      const pubRes: any = await runner.execute(GET_ALL_PUBLICATIONS_AND_CATALOGS_QUERY);
+      const pubSet = new Set<string>();
+
       const pubNodes = pubRes?.data?.publications?.nodes || pubRes?.publications?.nodes || [];
-      targetPublicationInputs = pubNodes
-        .filter((p: any) => p?.id)
-        .map((p: any) => ({ publicationId: p.id }));
+      pubNodes.forEach((p: any) => {
+        if (p?.id) pubSet.add(p.id);
+      });
+
+      const catalogNodes = pubRes?.data?.catalogs?.nodes || pubRes?.catalogs?.nodes || [];
+      catalogNodes.forEach((c: any) => {
+        if (c?.publication?.id) pubSet.add(c.publication.id);
+      });
+
+      targetPublicationInputs = Array.from(pubSet).map((pubId) => ({ publicationId: pubId }));
     } catch (err) {
-      console.error('Failed to query publications:', err);
+      console.error('Failed to query publications and catalogs:', err);
       targetPublicationInputs = [];
     }
 
