@@ -37,12 +37,14 @@ export async function POST(req: NextRequest) {
 
     const syncedCount = verifiedProducts.filter((p) => p.status === 'PUSHED').length;
     const readyCount = verifiedProducts.filter((p) => p.status === 'READY').length;
+    const needsUpdateCount = verifiedProducts.filter((p) => p.status === 'NEEDS_UPDATE').length;
 
     return NextResponse.json({
       success: true,
       count: verifiedProducts.length,
       syncedCount,
       readyCount,
+      needsUpdateCount,
       products: verifiedProducts,
       summary,
       shopifyStoreProducts,

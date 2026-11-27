@@ -1,4 +1,4 @@
-export type ProductPushStatus = 'DRAFT' | 'READY' | 'PUSHING' | 'PUSHED' | 'ERROR';
+export type ProductPushStatus = 'DRAFT' | 'READY' | 'NEEDS_UPDATE' | 'PUSHING' | 'PUSHED' | 'ERROR';
 
 export interface ExtractedProduct {
   id: string; // Unique client-side ID
@@ -21,7 +21,6 @@ export interface ExtractedProduct {
   sheet_updated_at?: string;
   notes?: string;
 
-  // Local state & Shopify linkage
   status: ProductPushStatus;
   shopifyId?: string;
   shopifyHandle?: string;
