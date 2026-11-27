@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { products, summary } = await parseExcelBuffer(buffer);
-    const verifiedProducts = await verifyProductsWithShopify(products, workspaceId);
+    const { verified: verifiedProducts, shopifyStoreProducts, targetStore, connectionSource } = await verifyProductsWithShopify(products, workspaceId);
 
     const syncedCount = verifiedProducts.filter((p) => p.status === 'PUSHED').length;
     const readyCount = verifiedProducts.filter((p) => p.status === 'READY').length;
@@ -45,6 +45,9 @@ export async function POST(req: NextRequest) {
       readyCount,
       products: verifiedProducts,
       summary,
+      shopifyStoreProducts,
+      targetStore,
+      connectionSource,
     });
   } catch (error: any) {
     return NextResponse.json(

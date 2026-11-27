@@ -1,17 +1,20 @@
 import { ExtractedProduct } from '@/types/product';
 import { getShopifyConfig, executeGraphQL } from '@/lib/shopify/client';
 import { getShopifyClientForWorkspace } from '@/lib/shopify/workspaceClient';
-import { getSupabaseServerClient } from '@/lib/supabase/server';
 
 const GET_ALL_SHOPIFY_PRODUCTS_QUERY = `
-  query GetAllShopifyProducts($first: Int!) {
-    products(first: $first) {
+  query GetAllShopifyProducts($first: Int!, $after: String) {
+    products(first: $first, after: $after, sortKey: UPDATED_AT, reverse: true) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
       nodes {
         id
         title
         handle
         status
-        variants(first: 50) {
+        variants(first: 100) {
           nodes {
             id
             title
@@ -34,7 +37,7 @@ const SEARCH_SHOPIFY_PRODUCT_QUERY = `
         title
         handle
         status
-        variants(first: 50) {
+        variants(first: 100) {
           nodes {
             id
             title
@@ -52,6 +55,10 @@ const SEARCH_SHOPIFY_PRODUCT_QUERY = `
 function normalize(str: string): string {
   return str
     .toLowerCase()
+    .replace(/\bfb\b/g, 'flavour beast')
+    .replace(/drip\s*'?\s*n/g, 'dripn')
+    .replace(/geek\s*bar/g, 'geekbar')
+    .replace(/level\s*x/g, 'levelx')
     .replace(/[\u2010-\u2015\u2212\-_/()&+,.]/g, ' ')
     .replace(/[^a-z0-9\s]/g, '')
     .replace(/\s+/g, ' ')
@@ -65,7 +72,8 @@ function isGenericFlavor(flavor: string): boolean {
     f === 'no color option single product' ||
     f === 'all existing flavors list not provided' ||
     f === 'all flavors' ||
-    f === 'default title'
+    f === 'default title' ||
+    f === 'standard product'
   );
 }
 
@@ -79,68 +87,59 @@ function matchesShopifyProduct(item: ExtractedProduct, shopifyNode: any): boolea
   }
 
   if (isGenericFlavor(flavor)) {
-    return shopTitle === itemTitle || shopTitle.includes(itemTitle) || itemTitle.includes(shopTitle);
+    if (shopTitle === itemTitle || shopTitle.includes(itemTitle) || itemTitle.includes(shopTitle)) {
+      return true;
+    }
   }
 
-  const combinedTitleFlavor = `${itemTitle} ${flavor}`.trim();
-
-  if (shopTitle === combinedTitleFlavor || shopTitle.includes(combinedTitleFlavor)) {
+  const combined = `${itemTitle} ${flavor}`.trim();
+  if (shopTitle === combined || shopTitle.includes(combined)) {
     return true;
   }
 
-  if (shopTitle === itemTitle || shopTitle.includes(itemTitle)) {
+  const titleWords = Array.from(new Set(itemTitle.split(' ').filter((w) => w.length > 2)));
+  const titleMatches = titleWords.length > 0 && titleWords.every((w) => shopTitle.includes(w));
+
+  if (titleMatches) {
+    if (isGenericFlavor(flavor)) {
+      return true;
+    }
+
+    const flavorWords = Array.from(new Set(flavor.split(' ').filter((w) => w.length > 2)));
+    if (flavorWords.length > 0 && flavorWords.every((w) => shopTitle.includes(w))) {
+      return true;
+    }
+
     const variants = shopifyNode.variants?.nodes || [];
-    const hasVariant = variants.some((v: any) => {
+    const variantMatches = variants.some((v: any) => {
       const vTitle = normalize(v.title || '');
-      if (vTitle === flavor || vTitle.includes(flavor) || flavor.includes(vTitle)) {
+      if (flavorWords.length > 0 && flavorWords.every((w) => vTitle.includes(w))) {
         return true;
       }
       const opts = v.selectedOptions || [];
       return opts.some((o: any) => {
         const val = normalize(o.value || '');
-        return val === flavor || val.includes(flavor) || flavor.includes(val);
+        return flavorWords.length > 0 && flavorWords.every((w) => val.includes(w));
       });
     });
-    if (hasVariant) return true;
-  }
 
-  if (shopTitle.includes(itemTitle) && shopTitle.includes(flavor)) {
-    return true;
+    if (variantMatches) {
+      return true;
+    }
   }
 
   return false;
 }
 
 async function getExecutor(workspaceId?: string | null) {
-  let targetWsId = workspaceId;
-
-  if (!targetWsId) {
-    try {
-      const supabase = getSupabaseServerClient();
-      const { data: latestConnection } = await supabase
-        .from('workspace_shopify_connections')
-        .select('workspace_id')
-        .eq('status', 'CONNECTED')
-        .order('installed_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (latestConnection?.workspace_id) {
-        targetWsId = latestConnection.workspace_id;
-      }
-    } catch {
-    }
-  }
-
-  if (targetWsId) {
-    try {
-      const wsClient = await getShopifyClientForWorkspace(targetWsId);
-      return {
-        shopDomain: wsClient.shopDomain,
-        execute: wsClient.executeGraphQL,
-      };
-    } catch {
-    }
+  try {
+    const wsClient = await getShopifyClientForWorkspace(workspaceId || '');
+    return {
+      shopDomain: wsClient.shopDomain,
+      execute: wsClient.executeGraphQL,
+      source: `workspace_oauth (${wsClient.shopDomain})`,
+    };
+  } catch {
   }
 
   try {
@@ -148,6 +147,7 @@ async function getExecutor(workspaceId?: string | null) {
     return {
       shopDomain: config.shopDomain,
       execute: executeGraphQL,
+      source: `.env fallback (${config.shopDomain})`,
     };
   } catch {
     return null;
@@ -157,21 +157,44 @@ async function getExecutor(workspaceId?: string | null) {
 export async function verifyProductsWithShopify(
   products: ExtractedProduct[],
   workspaceId?: string | null
-): Promise<ExtractedProduct[]> {
-  if (!products || products.length === 0) {
-    return [];
-  }
-
+): Promise<{ verified: ExtractedProduct[]; shopifyStoreProducts: any[]; targetStore?: string; connectionSource?: string }> {
   const runner = await getExecutor(workspaceId);
 
   let storeProducts: any[] = [];
   if (runner) {
     try {
-      const storeRes = await runner.execute<any>(GET_ALL_SHOPIFY_PRODUCTS_QUERY, { first: 250 });
-      storeProducts = storeRes?.data?.products?.nodes || storeRes?.products?.nodes || [];
-    } catch (err) {
-      console.error('Failed to pre-fetch Shopify store products:', err);
+      let cursor: string | null = null;
+      let hasNextPage = true;
+      let pageCount = 0;
+
+      while (hasNextPage && pageCount < 8) {
+        pageCount++;
+        const storeRes: any = await runner.execute(GET_ALL_SHOPIFY_PRODUCTS_QUERY, {
+          first: 250,
+          after: cursor,
+        });
+
+        const productData = storeRes?.data?.products || storeRes?.products;
+        const nodes = productData?.nodes || [];
+        storeProducts.push(...nodes);
+
+        hasNextPage = Boolean(productData?.pageInfo?.hasNextPage);
+        cursor = productData?.pageInfo?.endCursor || null;
+
+        if (!cursor || nodes.length === 0) break;
+      }
+    } catch (err: any) {
+      console.error('Failed to retrieve Shopify store products:', err.message || err);
     }
+  }
+
+  if (!products || products.length === 0) {
+    return {
+      verified: [],
+      shopifyStoreProducts: storeProducts,
+      targetStore: runner?.shopDomain,
+      connectionSource: runner?.source,
+    };
   }
 
   const queryCache = new Map<string, any[]>();
@@ -206,8 +229,7 @@ export async function verifyProductsWithShopify(
             });
             nodes = res?.data?.products?.nodes || res?.products?.nodes || [];
             queryCache.set(cleanSearch, nodes);
-          } catch (err) {
-            console.error('Shopify search error for', cleanSearch, err);
+          } catch {
             nodes = [];
           }
         }
@@ -243,5 +265,10 @@ export async function verifyProductsWithShopify(
     results.push(...chunkResults);
   }
 
-  return results;
+  return {
+    verified: results,
+    shopifyStoreProducts: storeProducts,
+    targetStore: runner?.shopDomain,
+    connectionSource: runner?.source,
+  };
 }

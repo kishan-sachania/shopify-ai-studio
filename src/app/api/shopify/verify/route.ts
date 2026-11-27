@@ -21,11 +21,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: fetchError.message }, { status: 500 });
     }
 
-    if (!rows || rows.length === 0) {
-      return NextResponse.json({ success: true, count: 0, syncedCount: 0, products: [] });
-    }
-
-    const products: ExtractedProduct[] = rows.map((row: any) => ({
+    const products: ExtractedProduct[] = (rows || []).map((row: any) => ({
       ...(row.data || {}),
       id: row.id,
       title: row.title,
@@ -39,29 +35,31 @@ export async function POST(req: NextRequest) {
       updatedAt: row.updated_at,
     }));
 
-    const verified = await verifyProductsWithShopify(products, workspaceId);
+    const { verified, shopifyStoreProducts, targetStore, connectionSource } = await verifyProductsWithShopify(products, workspaceId);
 
-    const updateRows = verified.map((p) => ({
-      id: p.id,
-      workspace_id: workspaceId,
-      title: p.title || '',
-      vendor: p.vendor || '',
-      product_type: p.productType || '',
-      price: p.price || 0,
-      status: p.status,
-      shopify_id: p.shopifyId || null,
-      shopify_handle: p.shopifyHandle || null,
-      shopify_url: p.shopify_product_url || null,
-      data: p,
-      updated_at: new Date().toISOString(),
-    }));
+    if (verified.length > 0) {
+      const updateRows = verified.map((p) => ({
+        id: p.id,
+        workspace_id: workspaceId,
+        title: p.title || '',
+        vendor: p.vendor || '',
+        product_type: p.productType || '',
+        price: p.price || 0,
+        status: p.status,
+        shopify_id: p.shopifyId || null,
+        shopify_handle: p.shopifyHandle || null,
+        shopify_url: p.shopify_product_url || null,
+        data: p,
+        updated_at: new Date().toISOString(),
+      }));
 
-    const { error: upsertError } = await supabase
-      .from('workspace_products')
-      .upsert(updateRows, { onConflict: 'workspace_id,id' });
+      const { error: upsertError } = await supabase
+        .from('workspace_products')
+        .upsert(updateRows, { onConflict: 'workspace_id,id' });
 
-    if (upsertError) {
-      return NextResponse.json({ error: upsertError.message }, { status: 500 });
+      if (upsertError) {
+        return NextResponse.json({ error: upsertError.message }, { status: 500 });
+      }
     }
 
     const syncedCount = verified.filter((p) => p.status === 'PUSHED').length;
@@ -71,6 +69,9 @@ export async function POST(req: NextRequest) {
       count: verified.length,
       syncedCount,
       products: verified,
+      shopifyStoreProducts,
+      targetStore,
+      connectionSource,
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Verification failed' }, { status: 500 });

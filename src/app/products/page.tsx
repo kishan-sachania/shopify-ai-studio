@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { FileSpreadsheet, Loader2 } from 'lucide-react';
 import { useLocalStorageProducts } from '@/hooks/useLocalStorageProducts';
@@ -49,11 +49,18 @@ export default function ProductsPage() {
         }
       }
     } catch (err) {
-      console.error(err);
+      console.error('Failed to verify Shopify sync:', err);
     } finally {
       setIsVerifying(false);
     }
   };
+
+  useEffect(() => {
+    const wsId = authWsId || (typeof window !== 'undefined' ? localStorage.getItem('active_workspace_id') : null);
+    if (wsId && isLoaded) {
+      handleVerifySync();
+    }
+  }, [authWsId, isLoaded]);
 
   // Shopify Push hook
   const { isPushing, progress, currentTitle, pushSingleProduct, pushBatch } = useShopifyPush({
