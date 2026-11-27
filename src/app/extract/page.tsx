@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { ArrowRight, CheckCircle2, AlertTriangle, ExternalLink } from 'lucide-react';
 import { FileDropzone } from '@/components/extract/FileDropzone';
+import { Badge } from '@/components/common/Badge';
 import { useLocalStorageProducts } from '@/hooks/useLocalStorageProducts';
 import { ExtractedProduct, ExtractionSummary } from '@/types/product';
 
@@ -19,6 +20,9 @@ export default function ExtractPage() {
     bulkAddProducts(products);
     setExtractedData({ products, summary });
   };
+
+  const syncedCount = extractedData?.products.filter((p) => p.status === 'PUSHED').length || 0;
+  const readyCount = extractedData?.products.filter((p) => p.status === 'READY').length || 0;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -46,20 +50,57 @@ export default function ExtractPage() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
             <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-              <span className="text-xs text-slate-500">Total Rows Read</span>
+              <span className="text-xs text-slate-500">Total Read</span>
               <p className="text-xl font-bold text-slate-800">{extractedData.summary.totalRows}</p>
             </div>
             <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-100">
-              <span className="text-xs text-emerald-700">Valid Products Created</span>
-              <p className="text-xl font-bold text-emerald-800">{extractedData.summary.validProducts}</p>
+              <span className="text-xs text-emerald-700">Synced with Shopify</span>
+              <p className="text-xl font-bold text-emerald-800">{syncedCount}</p>
+            </div>
+            <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+              <span className="text-xs text-blue-700">Ready to Push</span>
+              <p className="text-xl font-bold text-blue-800">{readyCount}</p>
             </div>
             <div className="p-3 bg-amber-50 rounded-lg border border-amber-100">
               <span className="text-xs text-amber-700">Skipped Rows</span>
               <p className="text-xl font-bold text-amber-800">{extractedData.summary.skippedRows}</p>
             </div>
           </div>
+
+          {extractedData.products.length > 0 && (
+            <div className="mt-4 border border-slate-200 rounded-lg overflow-hidden">
+              <div className="bg-slate-50 px-4 py-2 border-b border-slate-200 text-xs font-semibold text-slate-600">
+                Extracted Products Preview ({extractedData.products.length})
+              </div>
+              <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto">
+                {extractedData.products.slice(0, 15).map((prod) => (
+                  <div key={prod.id} className="flex items-center justify-between px-4 py-2.5 text-sm hover:bg-slate-50">
+                    <div className="min-w-0 pr-4">
+                      <p className="font-medium text-slate-800 truncate">{prod.title}</p>
+                      <p className="text-xs text-slate-500">
+                        {prod.variant_or_flavor ? `Flavor: ${prod.variant_or_flavor}` : 'Standard product'}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge status={prod.status} />
+                      {prod.shopify_product_url && (
+                        <a
+                          href={prod.shopify_product_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-slate-400 hover:text-emerald-600"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {extractedData.summary.warnings.length > 0 && (
             <div className="mt-4 p-4 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800 space-y-1">

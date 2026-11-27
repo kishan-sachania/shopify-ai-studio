@@ -1,6 +1,6 @@
 'use client';
 
-import { Search, Trash2, ArrowUpRight } from 'lucide-react';
+import { Search, Trash2, ArrowUpRight, RefreshCw } from 'lucide-react';
 import { ProductPushStatus } from '@/types/product';
 
 interface ProductFilterBarProps {
@@ -13,6 +13,8 @@ interface ProductFilterBarProps {
   onResetSelected?: () => void;
   onClearAll: () => void;
   isPushing: boolean;
+  onVerifySync?: () => void;
+  isVerifying?: boolean;
 }
 
 export function ProductFilterBar({
@@ -25,10 +27,11 @@ export function ProductFilterBar({
   onResetSelected,
   onClearAll,
   isPushing,
+  onVerifySync,
+  isVerifying,
 }: ProductFilterBarProps) {
   return (
     <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-4 bg-white border border-slate-200 rounded-xl shadow-sm mb-4">
-      {/* Search Bar */}
       <div className="relative flex-1">
         <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
         <input
@@ -40,7 +43,6 @@ export function ProductFilterBar({
         />
       </div>
 
-      {/* Status Filter Tabs */}
       <div className="flex items-center gap-1 overflow-x-auto py-1">
         {(['ALL', 'READY', 'PUSHED', 'ERROR'] as const).map((st) => (
           <button
@@ -57,8 +59,18 @@ export function ProductFilterBar({
         ))}
       </div>
 
-      {/* Action Buttons */}
       <div className="flex items-center gap-2 shrink-0">
+        {onVerifySync && (
+          <button
+            onClick={onVerifySync}
+            disabled={isVerifying || isPushing}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 disabled:opacity-40 transition-colors"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isVerifying ? 'animate-spin' : ''}`} />
+            {isVerifying ? 'Checking...' : 'Check Shopify Sync'}
+          </button>
+        )}
+
         {onResetSelected && selectedCount > 0 && (
           <button
             onClick={onResetSelected}

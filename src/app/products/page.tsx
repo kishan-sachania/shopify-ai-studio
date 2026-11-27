@@ -6,6 +6,7 @@ import { FileSpreadsheet, Loader2 } from 'lucide-react';
 import { useLocalStorageProducts } from '@/hooks/useLocalStorageProducts';
 import { usePagination } from '@/hooks/usePagination';
 import { useShopifyPush } from '@/hooks/useShopifyPush';
+import { useAuth } from '@/context/AuthContext';
 import { ProductTable } from '@/components/products/ProductTable';
 import { ProductFilterBar } from '@/components/products/ProductFilterBar';
 import { ProductEditDrawer } from '@/components/products/ProductEditDrawer';
@@ -21,10 +22,38 @@ export default function ProductsPage() {
     clearAllProducts,
   } = useLocalStorageProducts();
 
+  const { workspaceId: authWsId } = useAuth();
+  const [isVerifying, setIsVerifying] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProductPushStatus | 'ALL'>('ALL');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editingProduct, setEditingProduct] = useState<ExtractedProduct | null>(null);
+
+  const handleVerifySync = async () => {
+    const wsId = authWsId || (typeof window !== 'undefined' ? localStorage.getItem('active_workspace_id') : null);
+    if (!wsId) return;
+
+    setIsVerifying(true);
+    try {
+      const res = await fetch('/api/shopify/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workspaceId: wsId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.products)) {
+          data.products.forEach((p: ExtractedProduct) => {
+            updateProduct(p.id, p);
+          });
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsVerifying(false);
+    }
+  };
 
   // Shopify Push hook
   const { isPushing, progress, currentTitle, pushSingleProduct, pushBatch } = useShopifyPush({
@@ -169,6 +198,8 @@ export default function ProductsPage() {
         onResetSelected={handleResetSelected}
         onClearAll={clearAllProducts}
         isPushing={isPushing}
+        onVerifySync={handleVerifySync}
+        isVerifying={isVerifying}
       />
 
       {/* Paginated Product Table */}

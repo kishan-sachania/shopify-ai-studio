@@ -3,12 +3,14 @@
 import React, { useState, useRef } from 'react';
 import { UploadCloud, FileSpreadsheet, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { ExtractedProduct, ExtractionSummary } from '@/types/product';
+import { useAuth } from '@/context/AuthContext';
 
 interface FileDropzoneProps {
   onExtractionSuccess: (products: ExtractedProduct[], summary: ExtractionSummary) => void;
 }
 
 export function FileDropzone({ onExtractionSuccess }: FileDropzoneProps) {
+  const { workspaceId } = useAuth();
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +31,11 @@ export function FileDropzone({ onExtractionSuccess }: FileDropzoneProps) {
     setError(null);
     setSuccessInfo(null);
 
+    const activeWsId = workspaceId || (typeof window !== 'undefined' ? localStorage.getItem('active_workspace_id') : null);
+    if (activeWsId && !formData.has('workspaceId')) {
+      formData.append('workspaceId', activeWsId);
+    }
+
     try {
       const res = await fetch('/api/extract', {
         method: 'POST',
@@ -40,7 +47,16 @@ export function FileDropzone({ onExtractionSuccess }: FileDropzoneProps) {
         throw new Error(data.error || 'Failed to extract Excel products');
       }
 
-      setSuccessInfo(`Extracted ${data.count} valid products successfully.`);
+      const synced = typeof data.syncedCount === 'number'
+        ? data.syncedCount
+        : data.products?.filter((p: any) => p.status === 'PUSHED').length || 0;
+      const ready = typeof data.readyCount === 'number'
+        ? data.readyCount
+        : data.products?.filter((p: any) => p.status === 'READY').length || 0;
+
+      setSuccessInfo(
+        `Extracted ${data.count} products (${synced} synced in Shopify, ${ready} ready to push).`
+      );
       onExtractionSuccess(data.products, data.summary);
     } catch (err: any) {
       setError(err.message || 'An error occurred during extraction');
